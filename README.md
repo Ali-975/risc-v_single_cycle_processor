@@ -84,9 +84,7 @@ This file is preloaded into the instruction memory during simulation.
 ## 🖼️ Datapath Diagram (Conceptual)
 
 
-```markdown
 ![RISC-V Single Cycle Datapath](docs/datapath.png)
-```
 
 ---
 
