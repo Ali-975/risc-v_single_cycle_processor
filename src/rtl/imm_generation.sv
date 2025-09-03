@@ -19,11 +19,24 @@ module imm_generation(
     logic [6:0] opcode;
     assign opcode = instr[6:0];
     
-    always_comb begin
+     always_comb begin
         case (opcode)
-            // I-type (ADDI, SLTI, etc.)
-            // I-type immediate: sign-extend bits [31:20]
-            7'b0010011: imm = {{20{instr[31]}}, instr[31:20]};
+            7'b0010011, // I-type (ADDI, SLTI, etc.)
+            7'b0000011, // Load instructions
+            7'b1100111: begin // JALR
+                // I-type immediate: sign-extend bits [31:20]
+                imm = {{20{instr[31]}}, instr[31:20]};
+            end
+            
+            7'b0100011: begin // S-type (Store instructions)
+                // S-type immediate: sign-extend {bits[31:25], bits[11:7]}
+                imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
+            
+            7'b1101111: begin // JAL
+                // J-type immediate: sign-extend {bit[31], bits[19:12], bit[20], bits[30:21], 1'b0}
+                imm = {{11{instr[31]}}, instr[31], instr[19:12],
+                            instr[20], instr[30:21], 1'b0};
+            end
             
             default: begin
                 imm = 32'h0;

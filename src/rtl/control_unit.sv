@@ -14,27 +14,79 @@
 module control_unit(
     input logic [6: 0] opcode,
     
-    output logic we,
+    output logic reg_we,
+    output logic mem_we,
+    output logic mem_reg_w,
+    output logic [2: 0] mem_re,
     output logic [1: 0] alu_op,
-    output logic op_b_sel
+    output logic op_b_sel,
+    output logic [1: 0] pc_sel,
+    output logic jump
     );
     
     always_comb begin
-        if(opcode == 7'b0110011) begin
-            we = 1'b1;
+        if(opcode == 7'b0110011) begin // R-type
+            reg_we = 1'b1;
+            mem_reg_w = 1'b0;
+            mem_we = 1'b0;
             alu_op = 2'b10;
             op_b_sel = 1'b0;
+            pc_sel = 2'b00;
+            jump = 1'b0;
         end
         
-        else if(opcode == 7'b0010011) begin
-            we = 1'b1;
+        else if(opcode == 7'b0010011) begin // I-type
+            reg_we = 1'b1;
+            mem_reg_w = 1'b0;
+            mem_we = 1'b0;
             alu_op = 2'b10;
             op_b_sel = 1'b1;
+            pc_sel = 2'b00;
+            jump = 1'b0;
+        end
+        else if(opcode == 7'b0100011) begin // store
+            reg_we = 1'b0;
+            mem_reg_w = 1'b0;
+            mem_we = 1'b1;
+            alu_op = 2'b00;
+            op_b_sel = 1'b1;
+            pc_sel = 2'b00;
+            jump = 1'b0;
+        end
+        else if(opcode == 7'b0000011) begin // load
+            reg_we = 1'b1;
+            mem_reg_w = 1'b1;
+            mem_we = 1'b0;
+            alu_op = 2'b00;
+            op_b_sel = 1'b1;
+            pc_sel = 2'b00;
+            jump = 1'b0;
+        end
+        else if(opcode == 7'b1101111) begin // Jal
+            reg_we = 1'b1;
+            mem_reg_w = 1'b0;
+            mem_we = 1'b0;
+            alu_op = 2'b00;
+            op_b_sel = 1'b1;
+            pc_sel = 2'b01;
+            jump = 1'b1;
+        end
+        else if(opcode == 7'b1100111) begin // Jalr
+            reg_we = 1'b1;
+            mem_reg_w = 1'b0;
+            mem_we = 1'b0;
+            alu_op = 2'b00;
+            op_b_sel = 1'b1;
+            pc_sel = 2'b10;
+            jump = 1'b1;
         end
         else begin
-            we = 1'b0;
+            reg_we = 1'b0;
+            mem_reg_w = 1'b0;
+            mem_we = 1'b0;
             alu_op = 2'b00;
             op_b_sel = 1'b0;
+            pc_sel = 2'b00;
         end
     end
     

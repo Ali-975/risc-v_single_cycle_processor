@@ -19,6 +19,7 @@ module alu_cntrl(
 );
     always_comb begin
         case(alu_op)
+            2'b00: alu_instr = 4'b0010;
             2'b10: begin
                 case(func_3)
                     3'b000: begin
@@ -41,6 +42,7 @@ module alu_cntrl(
                     3'b111: alu_instr = 4'b0000;        // and
                 endcase
             end
+            
             default: alu_instr = 4'b1111;
         endcase
     end
