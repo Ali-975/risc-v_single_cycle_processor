@@ -20,26 +20,25 @@ module top(
     // Prog Cntr signals
     logic [31: 0] pc;
     logic [31: 0] next_pc;
-    logic [1: 0] pc_sel;
-    logic jump;
+    
     
     // Instr Mem signals
     logic [31: 0] instr;
-    logic [9: 0] addr;
     
     // Data Mem signals
     logic [31: 0] d_mem_d_out;
-//    logic [11: 0] mem_we;
     
     // Control Unit signals
     logic reg_we;
     logic mem_we;
     logic mem_reg_w;
-//    logic [2: 0] mem_re;
     logic op_b_sel;
+    logic [1: 0] op_a_sel;
     logic [1: 0] alu_op;
     logic [6: 0] opcode;
-    
+    logic [1: 0] pc_sel;
+    logic jump;
+    logic branch;
     
     // regfile signals
     logic [4: 0] rs1;
@@ -59,17 +58,21 @@ module top(
     logic [2: 0] func_3;
     logic [6: 0] func_7;
     logic [3:0] alu_instr;
-//    logic [6: 0] opcode;
-
-    assign op_a = reg_out_1;
-//    assign op_b = reg_out_2;
+    logic [3: 0] zero;
+    logic n, z, c, v;
+    
+    // Flags negative, zero, carry, overflow
+    assign n = zero[3];
+    assign z = zero[2];
+    assign c = zero[1];
+    assign v = zero[0];
 
     prog_cntr p_c(.clk(clk), .rst(rst), 
                 .next_pc(next_pc), .pc(pc));
-    assign addr = pc[9: 0];
-//    assign next_pc = pc;
-    instr_mem IM(.addr(addr), .instr(instr));
     
+    instr_mem IM(.addr(pc), .instr(instr));
+    
+    // instruction decode
     assign opcode = instr[6: 0];
     assign rs1 = instr[19: 15];
     assign rs2 = instr[24: 20];
@@ -78,15 +81,13 @@ module top(
     assign func_7 = instr[31: 25];
     
     control_unit cu(.opcode(opcode), .reg_we(reg_we), .mem_we(mem_we), 
-                .mem_reg_w(mem_reg_w), .alu_op(alu_op), 
-                .op_b_sel(op_b_sel), .pc_sel(pc_sel), .jump(jump));
+                .mem_reg_w(mem_reg_w), .alu_op(alu_op), .op_a_sel(op_a_sel),
+                .op_b_sel(op_b_sel), .pc_sel(pc_sel), .jump(jump), .branch(branch));
                 
     imm_generation imm_gen(.instr(instr), .imm(imm));
     
-    assign op_b = (op_b_sel) ? imm : reg_out_2;
-    
     alu a_l_u(.op_1(op_a), .op_2(op_b), 
-                .result(alu_out), .alu_instr(alu_instr));
+                .result(alu_out), .alu_instr(alu_instr), .zero(zero));
                 
     alu_cntrl a_l_u_cntrl(.alu_op(alu_op), .func_3(func_3), 
                 .func_7(func_7), .alu_instr(alu_instr));
@@ -99,8 +100,20 @@ module top(
                 .mem_we(mem_we), .d_mem_addr(alu_out), 
                 .data_in(reg_out_2), .data_out(d_mem_d_out));
     
-//    assign wb_data = (mem_reg_w) ? d_mem_d_out : alu_out;
+    // for alu operand b
+    assign op_b = (op_b_sel) ? imm : reg_out_2;
     
+    // for alu operand a
+    always_comb begin
+        unique case (op_a_sel)
+            2'b00: op_a = reg_out_1;
+            2'b01: op_a = pc; // 
+            2'b10: op_a = pc; // 
+            2'b11: op_a = 0;
+        endcase
+    end
+    
+    // for register file what to write
     always_comb begin
         if(jump)
             wb_data = pc + 4; 
@@ -108,12 +121,23 @@ module top(
             wb_data = (mem_reg_w) ? d_mem_d_out : alu_out;
     end
     
+    // for program counter what is next pc
     always_comb begin
-        unique case (pc_sel)
-            2'b00: next_pc = pc + 4;
-            2'b01: next_pc = pc + imm; // jal
-            2'b10: next_pc = reg_out_1 + imm; // jalr
-            2'b11: next_pc = pc + 4;
-        endcase
-    end
+            unique case (pc_sel)
+                2'b00: next_pc = pc + 4;
+                2'b01: next_pc = pc + imm;                          // jal and branch
+                2'b10: next_pc = reg_out_1 + imm;                   // jalr
+                2'b11: begin                                        // branch
+                    unique case (func_3)
+                        3'b000: next_pc = (z)       ? pc + imm : pc + 4; // beq
+                        3'b001: next_pc = (!z)      ? pc + imm : pc + 4; // bne
+                        3'b100: next_pc = (n != v)  ? pc + imm : pc + 4; // blt
+                        3'b101: next_pc = (n == v)  ? pc + imm : pc + 4; // bge
+                        3'b110: next_pc = !c        ? pc + imm : pc + 4; // bltu
+                        3'b111: next_pc = (c)       ? pc + imm : pc + 4; // bgeu
+                        default: next_pc = pc + 4;
+                    endcase
+                end
+            endcase
+        end
 endmodule

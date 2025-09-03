@@ -20,6 +20,12 @@ module alu_cntrl(
     always_comb begin
         case(alu_op)
             2'b00: alu_instr = 4'b0010;
+            2'b01: begin
+                alu_instr = 4'b0110;
+//                case(func_3)
+//                    3'b001: alu_instr = 4'b0110;
+//                endcase
+            end
             2'b10: begin
                 case(func_3)
                     3'b000: begin
@@ -53,9 +59,11 @@ module alu(
     input logic [31: 0] op_2,
     input logic [3: 0] alu_instr,
     
+    output logic [3: 0] zero,
     output logic [31: 0] result
 );
-    
+    logic [32: 0] wide_result;
+    logic n, z, c, v;
     logic [31: 0] shift_op_2;
     logic [5: 0] shift;
     
@@ -64,8 +72,34 @@ module alu(
     
     always_comb begin
         case(alu_instr)
-            4'b0010: result = op_1 + op_2;                           // ADD
-            4'b0110: result = op_1 - op_2;                           // SUB
+            4'b0010: begin
+                result = op_1 + op_2;                               // ADD
+                wide_result = {1'b0, op_1} + {1'b0, op_2}; 
+                
+                //carry flag logic
+                c = wide_result[32];
+                
+                // overflow flag 
+                // for add: same sign inputs, different sign result
+                if ((op_1[31] == op_2[31]) && (wide_result[31] != op_1[31]))
+                    v = 1'b1;
+                else
+                    v = 1'b0;
+            end
+            4'b0110: begin
+                result = op_1 - op_2;                               // SUB
+                wide_result = {1'b0, op_1} - {1'b0, op_2};
+                
+                //carry flag logic
+                c = wide_result[32];
+                
+                // overflow flag 
+                // for sub: different sign inputs, result sign != A's sign
+                if ((op_1[31] != op_2[31]) && (wide_result[31] != op_1[31]))
+                    v = 1'b1;
+                else
+                    v = 1'b0;
+            end
             4'b0100: result = op_1 << shift;                         // SLL (shift left logical)
             4'b0101: result = ($signed(op_1) < $signed(op_2));       // SLT (signed compare)
             4'b0111: result = (op_1 < op_2);                         // SLTU (unsigned compare)
@@ -78,6 +112,12 @@ module alu(
         endcase
 
     end
+    // Zero flag
+    assign z = (result == 0) ? 1'b1: 1'b0;
+
+    // Negative flag
+    assign n = result[31];
     
+    assign zero = {n, z, c, v};
 endmodule
 

@@ -31,6 +31,19 @@ module imm_generation(
             7'b0100011: begin // S-type (Store instructions)
                 // S-type immediate: sign-extend {bits[31:25], bits[11:7]}
                 imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
+            end
+            
+            7'b1100011: begin // B-type (Branch instructions)
+                // B-type immediate: sign-extend {bit[31], bit[7], bits[30:25], bits[11:8], 1'b0}
+                imm = {{19{instr[31]}}, instr[31], instr[7], 
+                            instr[30:25], instr[11:8], 1'b0};
+            end
+            
+            7'b0110111, // LUI
+            7'b0010111: begin // AUIPC
+                // U-type immediate: {bits[31:12], 12'b0}
+                imm = {instr[31:12], 12'b0};
+            end
             
             7'b1101111: begin // JAL
                 // J-type immediate: sign-extend {bit[31], bits[19:12], bit[20], bits[30:21], 1'b0}
