@@ -59,6 +59,7 @@ module top(
     logic [6: 0] func_7;
     logic [3:0] alu_instr;
     logic [3: 0] zero;
+    logic branch_taken;
     logic n, z, c, v;
     
     // Flags negative, zero, carry, overflow
@@ -86,8 +87,8 @@ module top(
                 
     imm_generation imm_gen(.instr(instr), .imm(imm));
     
-    alu a_l_u(.op_1(op_a), .op_2(op_b), 
-                .result(alu_out), .alu_instr(alu_instr), .zero(zero));
+    alu a_l_u(.op_1(op_a), .op_2(op_b), .result(alu_out), 
+                .alu_instr(alu_instr), .zero(zero), .branch_taken(branch_taken));
                 
     alu_cntrl a_l_u_cntrl(.alu_op(alu_op), .func_3(func_3), 
                 .func_7(func_7), .alu_instr(alu_instr));
@@ -100,43 +101,39 @@ module top(
                 .mem_we(mem_we), .d_mem_addr(alu_out), 
                 .data_in(reg_out_2), .data_out(d_mem_d_out));
     
-    // for alu operand b
-    assign op_b = (op_b_sel) ? imm : reg_out_2;
-    
-    // for alu operand a
     always_comb begin
-        unique case (op_a_sel)
+        unique case (op_a_sel)          // for alu operand a
             2'b00: op_a = reg_out_1;
-            2'b01: op_a = pc; // 
-            2'b10: op_a = pc; // 
+            2'b01: op_a = pc;
+            2'b10: op_a = pc;
             2'b11: op_a = 0;
         endcase
-    end
-    
-    // for register file what to write
-    always_comb begin
-        if(jump)
-            wb_data = pc + 4; 
+        
+        if(op_b_sel)                    // for alu operand b
+            op_b = imm;
         else
-            wb_data = (mem_reg_w) ? d_mem_d_out : alu_out;
+            op_b = reg_out_2;
+        
+        if(jump)                        // for register file what to write
+            wb_data = pc + 4;           // jal and jalr
+        else
+            if(mem_reg_w)
+                wb_data = d_mem_d_out;  // load
+            else
+                wb_data = alu_out;      // R and I type
     end
     
     // for program counter what is next pc
     always_comb begin
             unique case (pc_sel)
-                2'b00: next_pc = pc + 4;
-                2'b01: next_pc = pc + imm;                          // jal and branch
+                2'b00: next_pc = pc + 4;                            // normal execution
+                2'b01: next_pc = pc + imm;                          // jal
                 2'b10: next_pc = reg_out_1 + imm;                   // jalr
-                2'b11: begin                                        // branch
-                    unique case (func_3)
-                        3'b000: next_pc = (z)       ? pc + imm : pc + 4; // beq
-                        3'b001: next_pc = (!z)      ? pc + imm : pc + 4; // bne
-                        3'b100: next_pc = (n != v)  ? pc + imm : pc + 4; // blt
-                        3'b101: next_pc = (n == v)  ? pc + imm : pc + 4; // bge
-                        3'b110: next_pc = !c        ? pc + imm : pc + 4; // bltu
-                        3'b111: next_pc = (c)       ? pc + imm : pc + 4; // bgeu
-                        default: next_pc = pc + 4;
-                    endcase
+                2'b11: begin
+                    if(branch & branch_taken)
+                        next_pc = pc + imm;                         // branch
+                    else
+                        next_pc =  pc + 4;                          // normal execution
                 end
             endcase
         end

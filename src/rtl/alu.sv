@@ -20,16 +20,11 @@ module alu_cntrl(
     always_comb begin
         case(alu_op)
             2'b00: alu_instr = 4'b0010;
-            2'b01: begin
-                alu_instr = 4'b0110;
-//                case(func_3)
-//                    3'b001: alu_instr = 4'b0110;
-//                endcase
-            end
+            2'b01: alu_instr = 4'b0110;
             2'b10: begin
                 case(func_3)
                     3'b000: begin
-                        if(func_7 == 7'b0100000)
+                        if(func_7 == 7'b0100000 && func_7[6] != 1'b1)
                             alu_instr = 4'b0110;        // sub
                         else
                             alu_instr = 4'b0010;        // add
@@ -58,9 +53,11 @@ module alu(
     input logic [31: 0] op_1,
     input logic [31: 0] op_2,
     input logic [3: 0] alu_instr,
+    input logic [2: 0] func_3,
     
     output logic [3: 0] zero,
-    output logic [31: 0] result
+    output logic [31: 0] result,
+    output logic branch_taken
 );
     logic [32: 0] wide_result;
     logic n, z, c, v;
@@ -112,6 +109,18 @@ module alu(
         endcase
 
     end
+    always_comb begin
+        unique case (func_3)
+            3'b000: branch_taken = (z)       ? 1'b1 : 1'b0; // beq
+            3'b001: branch_taken = (!z)      ? 1'b1 : 1'b0; // bne
+            3'b100: branch_taken = (n != v)  ? 1'b1 : 1'b0; // blt
+            3'b101: branch_taken = (n == v)  ? 1'b1 : 1'b0; // bge
+            3'b110: branch_taken = !c        ? 1'b1 : 1'b0; // bltu
+            3'b111: branch_taken = (c)       ? 1'b1 : 1'b0; // bgeu
+            default: branch_taken = 1'b0;
+        endcase
+    end
+                    
     // Zero flag
     assign z = (result == 0) ? 1'b1: 1'b0;
 
