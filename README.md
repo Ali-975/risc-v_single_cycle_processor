@@ -90,7 +90,7 @@ This file is preloaded into the instruction memory during simulation.
 
 ## 📌 Future Improvements
 
-* Add **5-stage pipelining** (IF, ID, EX, MEM, WB)
+* Add **5-stage pipelining** (IF, ID, EX, MEM, WB).[done](https://github.com/Ali-975/rv32i-5-stage-pipelined-processor/commit/08cee43783c2a093c5489a0821a3658e63fe5d8b)
 * Implement **branch prediction**
 * Add **hazard detection and forwarding**
 * FPGA implementation on **Nexys A7 board**
