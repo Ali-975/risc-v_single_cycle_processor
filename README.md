@@ -90,9 +90,9 @@ This file is preloaded into the instruction memory during simulation.
 
 ## 📌 Future Improvements
 
-* Add **5-stage pipelining** (IF, ID, EX, MEM, WB).[done](https://github.com/Ali-975/rv32i-5-stage-pipelined-processor/commit/08cee43783c2a093c5489a0821a3658e63fe5d8b)
+* Add [**5-stage pipelining**](https://github.com/Ali-975/rv32i-5-stage-pipelined-processor/commit/08cee43783c2a093c5489a0821a3658e63fe5d8b) (IF, ID, EX, MEM, WB)
 * Implement **branch prediction**
-* Add **hazard detection and forwarding**
+* Add [**hazard detection**](https://github.com/Ali-975/rv32i-5-stage-pipelined-processor/commit/177310e1dd81e69012b7e9384f76f507c8159f8a) and [**forwarding**](https://github.com/Ali-975/rv32i-5-stage-pipelined-processor/commit/96825b4a35fb8dc1040dc9a78b24160908d3b8a7)
 * FPGA implementation on **Nexys A7 board**
 * UVM-based verification environment
 
